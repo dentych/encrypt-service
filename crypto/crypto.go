@@ -1,74 +1,49 @@
 package crypto
 
 import (
-	"bufio"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
 	"io"
-	"os"
 )
 
-func EncryptFile(secret []byte, inputFile, outputFile string) error {
+const Secret = "rtj10cv824h19x124jkeh8d91hx2k5jf"
+
+func Encrypt(secret []byte, input io.Reader) (io.Reader, error) {
 	ciph, err := aes.NewCipher(secret)
 	if err != nil {
-		return fmt.Errorf("failed to create new cipher: %w", err)
+		return nil, fmt.Errorf("failed to create new cipher: %w", err)
 	}
-
-	input, err := os.Open(inputFile)
-	if err != nil {
-		return fmt.Errorf("failed to open input file: %w", err)
-	}
-	defer input.Close()
 
 	iv := make([]byte, aes.BlockSize)
 	_, err = io.ReadFull(rand.Reader, iv)
 	if err != nil {
-		return fmt.Errorf("failed to read random bytes into IV: %w", err)
+		return nil, fmt.Errorf("failed to read random bytes into IV: %w", err)
 	}
+
+	reader, writer := io.Pipe()
 
 	ctr := cipher.NewCTR(ciph, iv)
 
-	outputFp, err := os.OpenFile(outputFile, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open output file for writing: %w", err)
-	}
-	defer outputFp.Close()
-
-	output := bufio.NewWriter(outputFp)
-	writer := cipher.StreamWriter{
+	streamWriter := cipher.StreamWriter{
 		S: ctr,
-		W: output,
+		W: writer,
 	}
 
-	_, err = io.Copy(writer, input)
+	_, err = io.Copy(streamWriter, input)
 	if err != nil {
-		return fmt.Errorf("failed to copy from input file to encrypted output: %w", err)
+		return nil, fmt.Errorf("failed to copy from input file to encrypted output: %w", err)
 	}
 
-	return nil
+	return reader, nil
 }
 
-func DecryptFile(secret []byte, inputFile, outputFile string) error {
+func Decrypt(secret []byte, input io.Reader, output io.Writer) error {
 	ciph, err := aes.NewCipher(secret)
 	if err != nil {
 		return fmt.Errorf("failed to create new cipher: %w", err)
 	}
-
-	input, err := os.Open(inputFile)
-	if err != nil {
-		return fmt.Errorf("failed to open input file: %w", err)
-	}
-	defer input.Close()
-
-	outputFp, err := os.OpenFile(outputFile, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open output file for writing: %w", err)
-	}
-	defer outputFp.Close()
-
-	output := bufio.NewWriter(outputFp)
 
 	iv := make([]byte, aes.BlockSize)
 	_, err = io.ReadFull(input, iv)
