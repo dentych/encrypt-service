@@ -15,7 +15,7 @@ func Setup(storageDir string) {
 }
 
 func FileExists(filename string) (bool, error) {
-	if _, err := os.Stat(filename); err == nil {
+	if _, err := os.Stat(filepath.Join(storageDirectory, filename)); err == nil {
 		return true, nil
 	} else if errors.Is(err, os.ErrNotExist) {
 		return false, nil
@@ -29,6 +29,7 @@ func StreamToStorage(filename string, stream io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file for writing: %s", err)
 	}
+	defer file.Close()
 
 	_, err = io.Copy(file, stream)
 	if err != nil {
@@ -36,4 +37,13 @@ func StreamToStorage(filename string, stream io.Reader) error {
 	}
 
 	return nil
+}
+
+func StreamFromStorage(filename string) (*os.File, error) {
+	file, err := os.Open(filepath.Join(storageDirectory, filename))
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file for writing: %s", err)
+	}
+
+	return file, nil
 }

@@ -8,13 +8,11 @@ import (
 )
 
 var (
-	ErrFileExists = fmt.Errorf("file already exists")
+	ErrFileExists    = fmt.Errorf("file already exists")
+	ErrFileNotExists = fmt.Errorf("file doesn't exist")
 )
 
-type api struct {
-}
-
-func (a *api) SaveFile(filename string, content io.Reader) error {
+func SaveFile(filename string, content io.Reader) error {
 	if exists, err := storage.FileExists(filename); err != nil {
 		return fmt.Errorf("failed to check if file exists: %w", err)
 	} else if exists {
@@ -26,10 +24,30 @@ func (a *api) SaveFile(filename string, content io.Reader) error {
 		return fmt.Errorf("failed to encrypt: %w", err)
 	}
 
-	err = storage.StreamToStorage("testfile.txt", encryptedContent)
+	err = storage.StreamToStorage(filename, encryptedContent)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func RetrieveFile(filename string) (io.Reader, error) {
+	if exists, err := storage.FileExists(filename); err != nil {
+		return nil, fmt.Errorf("failed to check if file exists: %w", err)
+	} else if !exists {
+		return nil, ErrFileNotExists
+	}
+
+	file, err := storage.StreamFromStorage(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stream from storage: %w", err)
+	}
+
+	reader, err := crypto.Decrypt([]byte(crypto.Secret), file)
+	if err != nil {
+		return nil, fmt.Errorf("decrypting failed: %w", err)
+	}
+
+	return reader, nil
 }
