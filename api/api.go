@@ -23,6 +23,7 @@ func SaveFile(filename string, content io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("failed to encrypt: %w", err)
 	}
+	encryptedContent.Close()
 
 	err = storage.StreamToStorage(filename, encryptedContent)
 	if err != nil {
@@ -32,7 +33,7 @@ func SaveFile(filename string, content io.Reader) error {
 	return nil
 }
 
-func RetrieveFile(filename string) (io.Reader, error) {
+func RetrieveFile(filename string) (*io.PipeReader, error) {
 	if exists, err := storage.FileExists(filename); err != nil {
 		return nil, fmt.Errorf("failed to check if file exists: %w", err)
 	} else if !exists {

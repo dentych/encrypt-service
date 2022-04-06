@@ -11,7 +11,7 @@ import (
 
 const Secret = "rtj10cv824h19x124jkeh8d91hx2k5jf"
 
-func Encrypt(secret []byte, input io.Reader) (io.Reader, error) {
+func Encrypt(secret []byte, input io.Reader) (*io.PipeReader, error) {
 	ciph, err := aes.NewCipher(secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new cipher: %w", err)
@@ -50,7 +50,7 @@ func Encrypt(secret []byte, input io.Reader) (io.Reader, error) {
 	return reader, nil
 }
 
-func Decrypt(secret []byte, input io.Reader) (io.Reader, error) {
+func Decrypt(secret []byte, input io.Reader) (*io.PipeReader, error) {
 	ciph, err := aes.NewCipher(secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new cipher: %w", err)
